@@ -1,0 +1,5 @@
+flask==2.2.2
+flask-sqlalchemy==2.5.1
+marshmallow==3.17.0
+psycopg2==2.9.3
+requests==2.28.1
