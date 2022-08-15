@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import os
 
+from elasticsearch_dsl import Search, connections
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
@@ -12,6 +13,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config ['JSON_SORT_KEYS'] = False
 db = SQLAlchemy(app)
+connections.create_connection(hosts=[os.environ.get('ES_URL_PROD')], timeout=30)
 
 
 # models
@@ -25,8 +27,8 @@ class Ngram(db.Model):
 # schemas
 class MetaSchema(Schema):
     count = fields.Int()
-    openalex_id = fields.Str()
     doi = fields.Str()
+    openalex_id = fields.Str()
 
     class Meta:
         ordered = True
@@ -51,14 +53,29 @@ class MessageSchema(Schema):
 
 
 # views
-@app.route('/')
-def ngrams_view():
+@app.route('/works/<openalex_id>/ngrams')
+def ngrams_view(openalex_id):
     result = OrderedDict()
-    ngrams = Ngram.query.filter_by(doi='10.1080/00039896.1983.10543998').first()
-    result["meta"] = {"count": len(ngrams.json_ngrams), "doi": "10.1080/00039896.1983.10543998"}
+    doi = openalex_id_to_doi(openalex_id)
+    short_doi = doi.replace("https://doi.org/", "")
+    ngrams = Ngram.query.filter_by(doi=short_doi).first()
+    result["meta"] = {"count": len(ngrams.json_ngrams), "doi": doi, "openalex_id": f"https://openalex.org/{openalex_id}"}
     result["ngrams"] = ngrams.json_ngrams
     message_schema = MessageSchema()
     return message_schema.dump(result)
+
+
+def openalex_id_to_doi(openalex_id):
+    openalex_id = f"https://openalex.org/{openalex_id}"
+    WORKS_INDEX = "works-v13-*,-*invalid-data"
+    s = Search(index=WORKS_INDEX)
+    s = s.extra(size=1)
+    s = s.source(["id", "doi"])
+    s = s.filter("term", id=openalex_id)
+    response = s.execute()
+    for r in response:
+        doi = r.doi
+        return doi
 
 
 if __name__ == '__main__':
