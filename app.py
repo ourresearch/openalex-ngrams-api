@@ -84,15 +84,15 @@ def openalex_id_to_doi(openalex_id):
 
 def doi_to_openalex_id(doi):
     if "https://doi.org" not in doi:
-        doi = f"https://doi.org/{doi}"
+        doi = f"https://doi.org/{doi.lower()}"
     s = Search(index=WORKS_INDEX)
     s = s.extra(size=1)
     s = s.source(["id", "doi"])
     s = s.filter("term", ids__doi=doi)
     response = s.execute()
     if s.count() == 0:
-        # openalex id is not valid
-        abort(404)
+        # doi not found in openalex
+        abort(404, "DOI not found in OpenAlex.")
     for r in response:
         openalex_id = r.id
         return openalex_id
@@ -109,7 +109,7 @@ def ngrams_view(input_id):
         doi = openalex_id_to_doi(input_id)
         openalex_id = f"https://openalex.org/{input_id}"
     elif is_doi(input_id):
-        doi = f"https://doi.org/{input_id}"
+        doi = f"https://doi.org/{input_id.lower()}"
         openalex_id = doi_to_openalex_id(doi)
     else:
         abort(404, "Invalid ID format. Needs to be an OpenAlex ID or DOI.")
