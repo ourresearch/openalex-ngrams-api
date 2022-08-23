@@ -117,7 +117,7 @@ def ngrams_view(input_id):
     if doi:
         short_doi = doi.replace("https://doi.org/", "")
         ngrams = Ngram.query.filter_by(doi=short_doi).first()
-        if ngrams:
+        if ngrams and ngrams.json_ngrams:
             result["meta"] = {
                 "count": len(ngrams.json_ngrams),
                 "doi": doi,
