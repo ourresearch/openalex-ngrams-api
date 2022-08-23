@@ -15,7 +15,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JSON_SORT_KEYS"] = False
 db = SQLAlchemy(app)
 connections.create_connection(hosts=[os.environ.get("ES_URL_PROD")], timeout=30)
-WORKS_INDEX = "works-v13-*,-*invalid-data"
+WORKS_INDEX = "works-v14-*,-*invalid-data"
 
 
 # models
